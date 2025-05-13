@@ -15,23 +15,121 @@ class Calculator {
     }
 
     onPressOperation(operation) {
+        let str = this.$previousPreviewPrompt.textContent;
+        if ("+-*÷^".includes(str[str.length - 1]) && this.$currentPreviewPrompt.textContent == "") {
+            this.$previousPreviewPrompt.textContent = str.slice(0, str.length - 1) + operation;
+            return;
+        }
         this.$previousPreviewPrompt.textContent +=
             " " + this.$currentPreviewPrompt.textContent + " " + operation;
         this.$currentPreviewPrompt.textContent = "";
     }
 
-    onEqual() {
-        let result = 0;
-        if (this.previousOperation == "+") {
-            result = this.handlePlus();
-        } else if (this.previousOperation == "-") {
-            result = this.handleMinus();
-        } else if (this.previousOperation == "*") {
-            result = this.handleMultiply();
-        } else if (this.previousOperation == "/") {
-            result = this.handleDivide();
+    infixToPostfix(expression) {
+        const output = [];
+        const stack = [];
+
+        const precedence = {
+            "+": 1,
+            "-": 1,
+            "*": 2,
+            "/": 2,
+        };
+
+        const isOperator = (token) => "+-*÷^".includes(token);
+        const isOperand = (token) => /^[0-9]+$/.test(token);
+
+        const tokens = expression.match(/\d+|[()+\-*÷/]/g);
+
+        for (let token of tokens) {
+            if (isOperand(token)) {
+                output.push(token);
+            } else if (token === "(") {
+                stack.push(token);
+            } else if (token === ")") {
+                while (stack.length && stack[stack.length - 1] !== "(") {
+                    output.push(stack.pop());
+                }
+                stack.pop(); // '(' 제거
+            } else if (isOperator(token)) {
+                while (
+                    stack.length &&
+                    isOperator(stack[stack.length - 1]) &&
+                    precedence[stack[stack.length - 1]] >= precedence[token]
+                ) {
+                    output.push(stack.pop());
+                }
+                stack.push(token);
+            }
         }
+
+        while (stack.length) {
+            output.push(stack.pop());
+        }
+
+        return output;
     }
+
+    onEqual() {
+        const currentInput = this.$currentPreviewPrompt.textContent.trim();
+        const prevInput = this.$previousPreviewPrompt.textContent.trim();
+
+        // 현재 입력값이 있을 경우에만 이어 붙이기
+        if (currentInput !== "") {
+            this.$previousPreviewPrompt.textContent += " " + currentInput;
+        }
+
+        // 후위 표기법으로 변환
+        const fullExpression = this.$previousPreviewPrompt.textContent.replace(/\s+/g, "");
+        const postCalculation = this.infixToPostfix(fullExpression);
+        console.log("후위표현식:", postCalculation);
+
+        // 후위 표기법 계산
+        let stack = [];
+
+        for (let token of postCalculation) {
+            if (!isNaN(parseFloat(token))) {
+                stack.push(parseFloat(token));
+            } else {
+                const b = stack.pop();
+                const a = stack.pop();
+                let result = 0;
+
+                switch (token) {
+                    case "+":
+                        result = a + b;
+                        break;
+                    case "-":
+                        result = a - b;
+                        break;
+                    case "*":
+                        result = a * b;
+                        break;
+                    case "÷":
+                        if (b === 0) {
+                            alert("0으로 나눌 수 없습니다.");
+                            return;
+                        }
+                        result = a / b;
+                        break;
+                    default:
+                        alert("알 수 없는 연산자: " + token);
+                        return;
+                }
+
+                stack.push(result);
+            }
+        }
+
+        const finalResult = stack.pop();
+
+        // 이전 프롬프트 초기화
+        this.onReset();
+
+        // 결과를 현재 프롬프트에 표시
+        this.$currentPreviewPrompt.textContent = finalResult;
+    }
+
     onReset() {
         this.$previousPreviewPrompt.textContent = "";
         this.$currentPreviewPrompt.textContent = "";
@@ -39,10 +137,9 @@ class Calculator {
         this.currentOperation = "";
     }
 
-    handlePlus() {}
-    handleMinus() {}
-    handleMultiply() {}
-    handleDivide() {}
+    onDelete() {
+        this.$currentPreviewPrompt.textContent = "";
+    }
 }
 
 // 연산자
@@ -84,6 +181,10 @@ $operations.forEach(($operation) => {
 
 $reset.addEventListener("click", (e) => {
     calc.onReset();
+});
+
+$delete.addEventListener("click", (e) => {
+    calc.onDelete();
 });
 
 // 객체 생성
