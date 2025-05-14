@@ -25,15 +25,32 @@ class Calculator {
     }
 
     onPressOperation(operation) {
-        let pre_str = this.$previousPreviewPrompt.textContent;
-        if (
-            "+-*÷^".includes(pre_str[pre_str.length - 1]) &&
-            this.$currentPreviewPrompt.textContent == ""
-        ) {
-            this.$previousPreviewPrompt.textContent =
-                pre_str.slice(0, pre_str.length - 1) + operation;
+        const pre_str = this.$previousPreviewPrompt.textContent;
+        const cur_str = this.$currentPreviewPrompt.textContent;
+
+        // 연산자만 바꾸고 싶을 때
+        if (/[+\-*/÷]$/.test(pre_str) && cur_str == "") {
+            this.$previousPreviewPrompt.textContent = pre_str.slice(0, -1) + operation;
             return;
         }
+
+        // 괄호 연산일 때
+        if (operation == "(") {
+            if (pre_str == "" && cur_str == "") {
+                this.$previousPreviewPrompt.textContent += "(";
+            } else if (pre_str == "" && cur_str != "") {
+                this.$previousPreviewPrompt.textContent += cur_str + " * (";
+            } else if (pre_str != "" && cur_str == "") {
+                this.$previousPreviewPrompt.textContent += " (";
+            } else {
+                this.$previousPreviewPrompt.textContent +=
+                    " " + this.$currentPreviewPrompt.textContent + " * (";
+            }
+            this.$currentPreviewPrompt.textContent = "";
+            return;
+        }
+
+        // 그 외 일반적인 경우
         this.$previousPreviewPrompt.textContent +=
             " " + this.$currentPreviewPrompt.textContent + " " + operation;
         this.$currentPreviewPrompt.textContent = "";
@@ -47,13 +64,14 @@ class Calculator {
             "+": 1,
             "-": 1,
             "*": 2,
-            "/": 2,
+            "÷": 2,
         };
 
-        const isOperator = (token) => "+-*÷^".includes(token);
+        const isOperator = (token) => "+-*/÷".includes(token);
         const isOperand = (token) => /^[0-9]+(\.[0-9]+)?$/.test(token);
 
-        const tokens = expression.match(/(\d+(\.\d+)?)|[()+\-*÷\/]/g);
+        const tokens = expression.match(/(\d+(\.\d+)?)|[()+\-*/÷]/g);
+        if (!tokens) return [];
 
         for (let token of tokens) {
             if (isOperand(token)) {
@@ -64,7 +82,11 @@ class Calculator {
                 while (stack.length && stack[stack.length - 1] !== "(") {
                     output.push(stack.pop());
                 }
-                stack.pop(); // '(' 제거
+                if (stack.length === 0) {
+                    alert("괄호 짝이 맞지 않습니다.");
+                    return [];
+                }
+                stack.pop();
             } else if (isOperator(token)) {
                 while (
                     stack.length &&
@@ -74,7 +96,15 @@ class Calculator {
                     output.push(stack.pop());
                 }
                 stack.push(token);
+            } else {
+                alert("유효하지 않은 토큰이 포함되어 있습니다: " + token);
+                return [];
             }
+        }
+
+        if (stack.includes("(") || stack.includes(")")) {
+            alert("괄호 짝이 맞지 않습니다.");
+            return [];
         }
 
         while (stack.length) {
@@ -88,17 +118,18 @@ class Calculator {
         let currentInput = this.$currentPreviewPrompt.textContent.trim();
         let prevInput = this.$previousPreviewPrompt.textContent.trim();
 
-        // 현재 입력값이 있을 경우 이어 붙이기, 없으면 기존 연산자 지우기
-        if (currentInput != "") {
-            prevInput += (prevInput == "" ? "" : " ") + currentInput;
-        } else {
-            if (prevInput == "") return;
-            prevInput = prevInput.slice(0, prevInput.length - 1);
+        // 후위 표기법으로 변환
+        let fullExpression = (prevInput + currentInput).replace(/\s+/g, "");
+        if (/[+\-*/÷]$/.test(fullExpression)) {
+            fullExpression = fullExpression.slice(0, -1);
         }
 
-        // 후위 표기법으로 변환
-        const fullExpression = prevInput.replace(/\s+/g, "");
         const postCalculation = this.infixToPostfix(fullExpression);
+
+        if (!postCalculation || postCalculation.length === 0) {
+            alert("잘못된 수식입니다.");
+            return;
+        }
 
         // 후위 표기법 계산
         let stack = [];
@@ -140,7 +171,7 @@ class Calculator {
         const finalResult = stack.pop();
 
         // 히스토리 추가
-        this.addHistory(prevInput, finalResult);
+        this.addHistory(fullExpression, finalResult);
 
         // 이전 프롬프트 초기화
         this.onReset();
