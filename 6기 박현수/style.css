@@ -28,6 +28,7 @@ body {
     /* width: 90%;
     max-width: 500px;
     margin: 0 auto; */
+    display: inline-flex;
 }
 
 .cal {
@@ -97,6 +98,25 @@ body {
     flex: 2 calc(50% - 4px);
 }
 
+.history {
+    background-color: cadetblue;
+    min-width: 200px;
+}
+
+.history > .node {
+    background-color: aqua;
+    padding: 5px;
+}
+
+.node > .expression {
+    font-size: 15px;
+}
+
+.node > .result {
+    font-size: 20px;
+    text-align: right;
+}
+
 @media (min-width: 601px) {
     .cal-space > button:hover {
         background-color: white;
@@ -129,4 +149,8 @@ body {
         width: auto;
         height: auto;
     }
+}
+
+.hidden {
+    display: none;
 }

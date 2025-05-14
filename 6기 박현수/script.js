@@ -5,6 +5,9 @@ class Calculator {
     previousOperation = "";
     currentOperation = "";
 
+    // {expression : string, result: int}
+    history = [];
+
     constructor($previousPreview, $currentPreview) {
         this.$previousPreviewPrompt = $previousPreview;
         this.$currentPreviewPrompt = $currentPreview;
@@ -13,8 +16,9 @@ class Calculator {
     onPressNumber(number) {
         let str = this.$currentPreviewPrompt.textContent;
         if (str == "0" && number == "0") return;
-        else if (str == "" && number == ".") str += "0.";
         else if (str.includes(".") && number == ".") return;
+        else if (str == "" && number == ".") str += "0.";
+        else if (str == "0" && number != "." && number != "0") str = number;
         else str += number;
 
         this.$currentPreviewPrompt.textContent = str;
@@ -81,20 +85,20 @@ class Calculator {
     }
 
     onEqual() {
-        const currentInput = this.$currentPreviewPrompt.textContent.trim();
-        const prevInput = this.$previousPreviewPrompt.textContent.trim();
+        let currentInput = this.$currentPreviewPrompt.textContent.trim();
+        let prevInput = this.$previousPreviewPrompt.textContent.trim();
 
         // 현재 입력값이 있을 경우 이어 붙이기, 없으면 기존 연산자 지우기
-        if (currentInput !== "") {
-            this.$previousPreviewPrompt.textContent += " " + currentInput;
+        if (currentInput != "") {
+            prevInput += (prevInput == "" ? "" : " ") + currentInput;
         } else {
-            this.$previousPreviewPrompt.textContent = prevInput.slice(0, prevInput.length - 2);
+            if (prevInput == "") return;
+            prevInput = prevInput.slice(0, prevInput.length - 1);
         }
 
         // 후위 표기법으로 변환
-        const fullExpression = this.$previousPreviewPrompt.textContent.replace(/\s+/g, "");
+        const fullExpression = prevInput.replace(/\s+/g, "");
         const postCalculation = this.infixToPostfix(fullExpression);
-        console.log("후위표현식:", postCalculation);
 
         // 후위 표기법 계산
         let stack = [];
@@ -129,11 +133,14 @@ class Calculator {
                         return;
                 }
 
-                stack.push(result);
+                stack.push(Math.round(result * 10 ** 6) / 10 ** 6);
             }
         }
 
         const finalResult = stack.pop();
+
+        // 히스토리 추가
+        this.addHistory(prevInput, finalResult);
 
         // 이전 프롬프트 초기화
         this.onReset();
@@ -152,6 +159,18 @@ class Calculator {
     onDelete() {
         this.$currentPreviewPrompt.textContent = "";
     }
+
+    addHistory(expression, result) {
+        // 히스토리 추가 코드
+        let $node = document.createElement("div");
+        $historyList.appendChild($node);
+        $node.classList.add("node");
+
+        $node.innerHTML = `
+            <div class="expression">${expression}</div>
+            <div class="result">${result}</div>
+        `;
+    }
 }
 
 // 연산자
@@ -164,6 +183,10 @@ const $eqaul = document.querySelector("[data-btn-eqaul]");
 // AC, DEL
 const $reset = document.querySelector("[data-btn-reset]");
 const $delete = document.querySelector("[data-btn-delete]");
+
+// history
+const $history = document.querySelector("[data-btn-history]");
+const $historyList = document.querySelector(".history");
 
 // 숫자
 const $numbers = document.querySelectorAll("[data-btn-number]");
@@ -197,6 +220,12 @@ $reset.addEventListener("click", (e) => {
 
 $delete.addEventListener("click", (e) => {
     calc.onDelete();
+});
+
+$history.addEventListener("click", (e) => {
+    console.log("history 누름");
+    // $historyList 토글 코드 작성 예정
+    $historyList.classList.toggle("hidden");
 });
 
 // 객체 생성
