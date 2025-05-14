@@ -11,13 +11,23 @@ class Calculator {
     }
 
     onPressNumber(number) {
-        this.$currentPreviewPrompt.textContent += number;
+        let str = this.$currentPreviewPrompt.textContent;
+        if (str == "0" && number == "0") return;
+        else if (str == "" && number == ".") str += "0.";
+        else if (str.includes(".") && number == ".") return;
+        else str += number;
+
+        this.$currentPreviewPrompt.textContent = str;
     }
 
     onPressOperation(operation) {
-        let str = this.$previousPreviewPrompt.textContent;
-        if ("+-*÷^".includes(str[str.length - 1]) && this.$currentPreviewPrompt.textContent == "") {
-            this.$previousPreviewPrompt.textContent = str.slice(0, str.length - 1) + operation;
+        let pre_str = this.$previousPreviewPrompt.textContent;
+        if (
+            "+-*÷^".includes(pre_str[pre_str.length - 1]) &&
+            this.$currentPreviewPrompt.textContent == ""
+        ) {
+            this.$previousPreviewPrompt.textContent =
+                pre_str.slice(0, pre_str.length - 1) + operation;
             return;
         }
         this.$previousPreviewPrompt.textContent +=
@@ -37,9 +47,9 @@ class Calculator {
         };
 
         const isOperator = (token) => "+-*÷^".includes(token);
-        const isOperand = (token) => /^[0-9]+$/.test(token);
+        const isOperand = (token) => /^[0-9]+(.[0-9]+)?$/.test(token);
 
-        const tokens = expression.match(/\d+|[()+\-*÷/]/g);
+        const tokens = expression.match(/(\d+(.\d+)?)|[()+\-*÷\/]/g);
 
         for (let token of tokens) {
             if (isOperand(token)) {
@@ -82,7 +92,6 @@ class Calculator {
         // 후위 표기법으로 변환
         const fullExpression = this.$previousPreviewPrompt.textContent.replace(/\s+/g, "");
         const postCalculation = this.infixToPostfix(fullExpression);
-        console.log("후위표현식:", postCalculation);
 
         // 후위 표기법 계산
         let stack = [];
