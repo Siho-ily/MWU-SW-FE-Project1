@@ -84,9 +84,11 @@ class Calculator {
         const currentInput = this.$currentPreviewPrompt.textContent.trim();
         const prevInput = this.$previousPreviewPrompt.textContent.trim();
 
-        // 현재 입력값이 있을 경우에만 이어 붙이기
+        // 현재 입력값이 있을 경우 이어 붙이기, 없으면 기존 연산자 지우기
         if (currentInput !== "") {
             this.$previousPreviewPrompt.textContent += " " + currentInput;
+        } else {
+            this.$previousPreviewPrompt.textContent = prevInput.slice(0, prevInput.length - 2);
         }
 
         // 후위 표기법으로 변환
